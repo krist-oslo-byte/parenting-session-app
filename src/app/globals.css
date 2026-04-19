@@ -29,6 +29,10 @@ body {
   font-family: var(--font-work-sans), sans-serif;
 }
 
+a {
+  color: inherit;
+}
+
 ::selection {
   background: rgba(245, 158, 11, 0.28);
   color: #1c1917;
@@ -180,6 +184,86 @@ body {
   border-color: rgba(217, 119, 6, 0.36);
   background: #fff7ed;
   color: #9a3412;
+}
+
+.hero-stat,
+.benefit-card,
+.trust-row,
+.faq-item,
+.history-item {
+  display: grid;
+  gap: 0.45rem;
+  border-radius: 1.2rem;
+  border: 1px solid rgba(41, 37, 36, 0.08);
+  background: white;
+  padding: 1rem;
+}
+
+.hero-stat {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.hero-stat strong,
+.benefit-card strong,
+.trust-row strong,
+.faq-item strong,
+.history-item strong {
+  font-size: 1rem;
+  color: #1c1917;
+}
+
+.hero-stat strong {
+  color: #fffdf8;
+}
+
+.hero-stat span,
+.benefit-card span,
+.history-item span,
+.faq-item p,
+.trust-row p {
+  line-height: 1.6;
+}
+
+.hero-stat span {
+  color: #d6d3d1;
+}
+
+.history-item small {
+  color: #78716c;
+}
+
+.tag-chip {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #fff7ed;
+  padding: 0.55rem 0.85rem;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #9a3412;
+}
+
+.child-card {
+  border-radius: 1.5rem;
+  border: 1px solid rgba(41, 37, 36, 0.08);
+  background: #fffdfa;
+  padding: 1rem;
+}
+
+.danger-button {
+  min-height: 2.5rem;
+  border-radius: 999px;
+  border: 1px solid rgba(220, 38, 38, 0.16);
+  background: #fff1f2;
+  padding: 0.7rem 0.95rem;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #b91c1c;
+}
+
+.danger-button:disabled {
+  opacity: 0.45;
 }
 
 .step-pill {

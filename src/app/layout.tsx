@@ -19,9 +19,21 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Samtaleøkter for foreldre",
+  title: "KlokPrat | Vanskelige samtaler hjemme",
   description:
-    "Lag ferdige samtaleøkter for foreldre og barn med realistiske situasjoner og konkrete spørsmål.",
+    "KlokPrat hjelper foreldre å øve på vanskelige samtaler hjemme med alderspassede scenarioer, tydelige spørsmål og støtte underveis.",
+  openGraph: {
+    title: "KlokPrat | Vanskelige samtaler hjemme",
+    description:
+      "Lær barna å tenke selv i vanskelige situasjoner med konkrete samtaleguider for foreldre.",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "KlokPrat | Vanskelige samtaler hjemme",
+    description:
+      "Konkrete samtaleguider for foreldre som vil øve på vanskelige situasjoner hjemme.",
+  },
 };
 
 export default function RootLayout({

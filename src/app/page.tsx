@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import {
   buildSessionPlan,
   type ChildInput,
@@ -15,9 +15,30 @@ type FormState = {
   children: ChildInput[];
 };
 
+type SessionHistoryItem = {
+  createdAt: string;
+  title: string;
+  theme: string;
+  participants: string;
+};
+
+type PersistedSessionState = {
+  form: FormState;
+  started: boolean;
+  currentStepIndex: number;
+  scenarioSelections: Record<string, number>;
+  notesByStep: Record<string, string>;
+  visitedSteps: Record<string, boolean>;
+  supportView: "help" | "notes";
+};
+
+const STORAGE_KEY = "klokprat-session-v1";
+const HISTORY_KEY = "klokprat-history-v1";
+const MAX_CHILDREN = 4;
+
 const defaultChildren: ChildInput[] = [
-  { name: "Theo", age: 15 },
-  { name: "Thea", age: 10 },
+  { name: "Theo", age: 15, temperament: "Tenker fort, liker å virke trygg", focus: "" },
+  { name: "Thea", age: 10, temperament: "Følsom, men sier lite først", focus: "" },
 ];
 
 const defaultState: FormState = {
@@ -27,21 +48,110 @@ const defaultState: FormState = {
   children: defaultChildren,
 };
 
+const durationOptions = [15, 20, 25];
 const themeSuggestions = [
   "Sosialt press og tydelige valg",
   "Penger, ærlighet og press",
   "Nett, dømmekraft og omdømme",
+  "Vennskap, utenforskap og mobbing",
+  "Følelser, sinne og konflikt",
+  "Kropp, grenser og samtykke",
+  "Endring, familie og skilsmisse",
 ];
 
+const exampleLines = [
+  "Scenario: En venn vil at barnet ditt skal lyve for å dekke over noe som skjedde på skolen.",
+  'Spørsmål: "Hva ville du sagt ord for ord?"',
+  'Oppfølging: "Hva koster det sosialt å si sannheten her?"',
+  'Foreldrehjelp: "Be om ett konkret svar før du ber om forklaringen."',
+];
+
+function readStoredSession(): PersistedSessionState | null {
+  if (typeof window === "undefined") return null;
+
+  const savedSession = window.localStorage.getItem(STORAGE_KEY);
+  if (!savedSession) return null;
+
+  try {
+    return JSON.parse(savedSession) as PersistedSessionState;
+  } catch {
+    return null;
+  }
+}
+
+function readStoredHistory() {
+  if (typeof window === "undefined") return [] as SessionHistoryItem[];
+
+  const savedHistory = window.localStorage.getItem(HISTORY_KEY);
+  if (!savedHistory) return [] as SessionHistoryItem[];
+
+  try {
+    return JSON.parse(savedHistory) as SessionHistoryItem[];
+  } catch {
+    return [] as SessionHistoryItem[];
+  }
+}
+
 export default function Home() {
-  const [form, setForm] = useState<FormState>(defaultState);
-  const [plan, setPlan] = useState<SessionPlan | null>(null);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const initialSession = readStoredSession();
+  const [form, setForm] = useState<FormState>(initialSession?.form ?? defaultState);
+  const [started, setStarted] = useState(initialSession?.started ?? false);
+  const [currentStepIndex, setCurrentStepIndex] = useState(
+    initialSession?.currentStepIndex ?? 0,
+  );
   const [copied, setCopied] = useState(false);
-  const [scenarioSelections, setScenarioSelections] = useState<Record<string, number>>({});
-  const [notesByStep, setNotesByStep] = useState<Record<string, string>>({});
-  const [visitedSteps, setVisitedSteps] = useState<Record<string, boolean>>({});
-  const [supportView, setSupportView] = useState<"help" | "notes">("help");
+  const [scenarioSelections, setScenarioSelections] = useState<Record<string, number>>(
+    initialSession?.scenarioSelections ?? {},
+  );
+  const [notesByStep, setNotesByStep] = useState<Record<string, string>>(
+    initialSession?.notesByStep ?? {},
+  );
+  const [visitedSteps, setVisitedSteps] = useState<Record<string, boolean>>(
+    initialSession?.visitedSteps ?? {},
+  );
+  const [supportView, setSupportView] = useState<"help" | "notes">(
+    initialSession?.supportView ?? "help",
+  );
+  const [history, setHistory] = useState<SessionHistoryItem[]>(readStoredHistory);
+
+  const plan: SessionPlan | null = useMemo(() => {
+    if (!started) return null;
+
+    return buildSessionPlan({
+      number_of_children: form.children.length,
+      children: form.children,
+      session_length_minutes: form.sessionLength,
+      difficulty_level: form.difficulty,
+      theme: form.theme || undefined,
+    });
+  }, [form, started]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({
+        form,
+        started,
+        currentStepIndex,
+        scenarioSelections,
+        notesByStep,
+        visitedSteps,
+        supportView,
+      }),
+    );
+  }, [
+    currentStepIndex,
+    form,
+    notesByStep,
+    scenarioSelections,
+    started,
+    supportView,
+    visitedSteps,
+  ]);
+
+  useEffect(() => {
+    window.localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+  }, [history]);
 
   useEffect(() => {
     if (!copied) return;
@@ -67,7 +177,15 @@ export default function Home() {
   function addChild() {
     setForm((current) => ({
       ...current,
-      children: [...current.children, { name: `Barn ${current.children.length + 1}`, age: 8 }],
+      children: [
+        ...current.children,
+        {
+          name: `Barn ${current.children.length + 1}`,
+          age: 9,
+          temperament: "",
+          focus: "",
+        },
+      ],
     }));
   }
 
@@ -99,23 +217,31 @@ export default function Home() {
           .filter((step) => step.kind === "scenario")
           .map((step) => [step.id, 0]),
       );
-
       const initialNotes = Object.fromEntries(nextPlan.steps.map((step) => [step.id, ""]));
       const initialVisited = Object.fromEntries(
         nextPlan.steps.map((step, index) => [step.id, index === 0]),
       );
 
-      setPlan(nextPlan);
+      setStarted(true);
       setCurrentStepIndex(0);
       setScenarioSelections(initialSelections);
       setNotesByStep(initialNotes);
       setVisitedSteps(initialVisited);
       setSupportView("help");
+      setHistory((current) => [
+        {
+          createdAt: new Date().toLocaleDateString("no-NO"),
+          title: nextPlan.title,
+          theme: nextPlan.theme,
+          participants: nextPlan.participantsLabel,
+        },
+        ...current,
+      ].slice(0, 6));
     });
   }
 
   function resetSession() {
-    setPlan(null);
+    setStarted(false);
     setCurrentStepIndex(0);
     setScenarioSelections({});
     setNotesByStep({});
@@ -196,8 +322,8 @@ export default function Home() {
     form.children.some((child) => child.name.trim().length === 0)
       ? "Alle barn må ha navn."
       : null,
-    form.children.some((child) => child.age < 4 || child.age > 18)
-      ? "Alder må være mellom 4 og 18."
+    form.children.some((child) => child.age < 6 || child.age > 16)
+      ? "Denne versjonen er best egnet for barn mellom 6 og 16 år."
       : null,
     form.sessionLength < 10 || form.sessionLength > 45
       ? "Varighet må være mellom 10 og 45 minutter."
@@ -208,181 +334,418 @@ export default function Home() {
     <main className="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.94),_rgba(255,247,237,0.96)_35%,_rgba(231,229,228,1)_100%)] text-stone-900">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
         <section className="overflow-hidden rounded-[2rem] border border-white/70 bg-stone-950 text-stone-50 shadow-[0_24px_80px_rgba(28,25,23,0.28)]">
-          <div className="grid gap-8 px-6 py-8 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:px-10 lg:py-10">
+          <div className="grid gap-8 px-6 py-8 sm:px-8 lg:grid-cols-[1.1fr_0.9fr] lg:px-10 lg:py-10">
             <div className="space-y-6">
               <div className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-200/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-amber-100">
-                Foreldreapp med samtaleøkter
+                KlokPrat • Vanskelige samtaler hjemme
               </div>
 
               <div className="space-y-4">
-                <h1 className="max-w-2xl font-serif text-4xl leading-tight sm:text-5xl">
-                  Bygg økten først. Kjør den steg for steg etterpå.
+                <h1 className="max-w-3xl font-serif text-4xl leading-tight sm:text-5xl">
+                  Lær barna å tenke selv i vanskelige situasjoner på 20 minutter.
                 </h1>
                 <p className="max-w-2xl text-base leading-7 text-stone-300 sm:text-lg">
-                  Fyll inn navn, alder, nivå og varighet. Trykk så på start for å få
-                  en ryddig økt der hvert steg kommer i riktig rekkefølge, med hjelp
-                  til forelder og egne notater underveis.
+                  KlokPrat hjelper foreldre å øve på sosiale, følelsesmessige og
+                  praktiske valg hjemme. Du får en konkret samtaleguide, spørsmål som
+                  presser tenkingen litt videre, og støtte til hva du kan si når barnet
+                  stopper opp.
                 </p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm text-stone-300">Trinnvis flyt</div>
-                  <div className="mt-2 text-lg font-semibold">Én del av manuset om gangen</div>
+                <div className="hero-stat">
+                  <strong>For barn 6-16 år</strong>
+                  <span>Alderstilpassede scenarioer for skole, venner, kropp, nett og familie.</span>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm text-stone-300">Bytt scenario</div>
-                  <div className="mt-2 text-lg font-semibold">Ny variant med ett klikk</div>
+                <div className="hero-stat">
+                  <strong>Gratis pilot</strong>
+                  <span>Ingen registrering og ingen betaling i denne versjonen.</span>
                 </div>
-                <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                  <div className="text-sm text-stone-300">Bruk underveis</div>
-                  <div className="mt-2 text-lg font-semibold">Hjelpetekst og notater på hvert steg</div>
+                <div className="hero-stat">
+                  <strong>Lagrer lokalt</strong>
+                  <span>Navn, notater og økthistorikk blir liggende i nettleseren din.</span>
                 </div>
+              </div>
+
+              <div className="flex flex-wrap gap-3">
+                <a className="primary-button" href="#bygg-okt">
+                  Prøv gratis og lag første økt
+                </a>
+                <a className="secondary-button" href="#eksempel">
+                  Se eksempel først
+                </a>
               </div>
             </div>
 
-            <div className="rounded-[1.75rem] bg-[#f7f3ee] p-4 text-stone-900 shadow-inner sm:p-5">
-              <div className="grid gap-4">
-                <div className="grid gap-4 sm:grid-cols-2">
-                  <label className="field">
-                    <span>Varighet</span>
-                    <input
-                      type="number"
-                      min={10}
-                      max={45}
-                      value={form.sessionLength}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          sessionLength: Number(event.target.value) || 20,
-                        }))
-                      }
-                    />
-                  </label>
-
-                  <label className="field">
-                    <span>Vanskelighetsgrad</span>
-                    <select
-                      value={form.difficulty}
-                      onChange={(event) =>
-                        setForm((current) => ({
-                          ...current,
-                          difficulty: event.target.value as DifficultyLevel,
-                        }))
-                      }
-                    >
-                      <option value="easy">Enkel</option>
-                      <option value="medium">Middels</option>
-                      <option value="advanced">Avansert</option>
-                    </select>
-                  </label>
+            <div className="rounded-[1.75rem] border border-white/10 bg-white/8 p-4 backdrop-blur sm:p-5">
+              <div className="rounded-[1.5rem] bg-[#fffdfa] p-5 text-stone-900 shadow-[0_16px_40px_rgba(0,0,0,0.18)]">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <p className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-500">
+                      Hva problemet er
+                    </p>
+                    <h2 className="mt-2 font-serif text-3xl leading-tight text-stone-950">
+                      Foreldre mangler ofte språk, timing og struktur.
+                    </h2>
+                  </div>
                 </div>
 
-                <label className="field">
-                  <span>Tema</span>
-                  <input
-                    type="text"
-                    placeholder="La stå tomt for automatisk valg av tema"
-                    value={form.theme}
-                    onChange={(event) =>
-                      setForm((current) => ({ ...current, theme: event.target.value }))
-                    }
-                  />
-                </label>
+                <div className="mt-5 grid gap-4">
+                  <div className="trust-row">
+                    <strong>Uten KlokPrat</strong>
+                    <p>Samtalen blir ofte tilfeldig, moraliserende eller så ubehagelig at den aldri skjer.</p>
+                  </div>
+                  <div className="trust-row">
+                    <strong>Med KlokPrat</strong>
+                    <p>Forelderen får en konkret guide, barnet får press til å tenke selv, og dere bygger språk over tid.</p>
+                  </div>
+                  <div className="trust-row">
+                    <strong>Hvordan innholdet lages</strong>
+                    <p>Denne piloten genererer økter lokalt fra kuraterte scenariomal tilpasset tema, alder og pressnivå.</p>
+                  </div>
+                  <div className="trust-row">
+                    <strong>Hva denne versjonen ikke er</strong>
+                    <p>Dette er ikke terapi eller krisehjelp. Den er laget for hverdagslige, vanskelige samtaler hjemme.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
 
+        <section className="grid gap-6 lg:grid-cols-[1.15fr_0.85fr]">
+          <div id="eksempel" className="rounded-[1.75rem] border border-stone-200/80 bg-white/90 p-6 shadow-[0_18px_50px_rgba(41,37,36,0.08)]">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-500">
+              Eksempel på økt
+            </p>
+            <h2 className="mt-2 font-serif text-3xl leading-tight text-stone-950">
+              Slik ser en samtaleguide ut før du trykker start.
+            </h2>
+            <div className="mt-6 rounded-[1.5rem] bg-stone-950 p-5 text-stone-100">
+              <div className="space-y-4">
+                {exampleLines.map((line) => (
+                  <p key={line} className="text-base leading-7 text-stone-100">
+                    {line}
+                  </p>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 grid gap-3 sm:grid-cols-3">
+              <div className="benefit-card">
+                <strong>Tydelig struktur</strong>
+                <span>Forelderen får én del av økten om gangen i stedet for en lang blokk tekst.</span>
+              </div>
+              <div className="benefit-card">
+                <strong>Press uten prekener</strong>
+                <span>Spørsmålene er laget for å trigge tenking, ikke skam eller lange moralforedrag.</span>
+              </div>
+              <div className="benefit-card">
+                <strong>Notater og progresjon</strong>
+                <span>Økter og notater lagres lokalt, så familien slipper å starte helt på nytt hver gang.</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <section className="rounded-[1.75rem] border border-stone-200/80 bg-white/90 p-6 shadow-[0_18px_50px_rgba(41,37,36,0.08)]">
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-500">
+                Tillit og sikkerhet
+              </p>
+              <div className="mt-4 space-y-4">
+                <div className="trust-row">
+                  <strong>Personvern</strong>
+                  <p>Denne versjonen sender ikke barnas navn og notater til en egen backend. Dataene lagres i nettleseren på enheten du bruker.</p>
+                </div>
+                <div className="trust-row">
+                  <strong>Når du bør stoppe økten</strong>
+                  <p>Hvis barnet forteller om vold, overgrep, selvskading eller akutt utrygghet, gå ut av øvelsen og søk mer hjelp med en gang.</p>
+                </div>
+                <div className="trust-row">
+                  <strong>Hva som er gratis nå</strong>
+                  <p>Dette er en gratis pilot uten innlogging. Ingen prisplan eller betalingssteg er lagt inn i denne versjonen.</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-[1.75rem] border border-stone-200/80 bg-white/90 p-6 shadow-[0_18px_50px_rgba(41,37,36,0.08)]">
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-500">
+                Temaer i piloten
+              </p>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {themeSuggestions.map((theme) => (
+                  <span key={theme} className="tag-chip">
+                    {theme}
+                  </span>
+                ))}
+              </div>
+              <p className="mt-4 text-sm leading-6 text-stone-600">
+                Flere temaer som sorg, seksualitet og nevrodivergens bør inn i en senere versjon.
+                Denne piloten er tydeligst på de mest brukte hverdagslige samtalene.
+              </p>
+            </section>
+          </div>
+        </section>
+
+        <section id="bygg-okt" className="grid gap-6 lg:grid-cols-[1fr_340px]">
+          <div className="rounded-[1.75rem] border border-stone-200/80 bg-white/90 p-6 shadow-[0_18px_50px_rgba(41,37,36,0.08)]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+              <div>
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-500">
+                  Bygg økt
+                </p>
+                <h2 className="mt-2 font-serif text-3xl leading-tight text-stone-950">
+                  Lag en ny samtaleguide for familien
+                </h2>
+              </div>
+              <p className="max-w-md text-sm leading-6 text-stone-600">
+                Barnelagring er lokal i nettleseren din. Du trenger ikke legge dem inn på nytt hver gang på samme enhet.
+              </p>
+            </div>
+
+            <div className="mt-6 grid gap-4 sm:grid-cols-2">
+              <div>
+                <p className="mb-3 text-sm font-semibold uppercase tracking-[0.16em] text-stone-500">
+                  Varighet
+                </p>
                 <div className="flex flex-wrap gap-2">
-                  {themeSuggestions.map((suggestion) => (
+                  {durationOptions.map((option) => (
                     <button
-                      key={suggestion}
-                      className={`tag-button ${
-                        form.theme === suggestion ? "tag-button-active" : ""
-                      }`}
+                      key={option}
+                      className={`tag-button ${form.sessionLength === option ? "tag-button-active" : ""}`}
                       type="button"
                       onClick={() =>
-                        setForm((current) => ({
-                          ...current,
-                          theme: current.theme === suggestion ? "" : suggestion,
-                        }))
+                        setForm((current) => ({ ...current, sessionLength: option }))
                       }
                     >
-                      {suggestion}
+                      {option} min
                     </button>
                   ))}
                 </div>
+              </div>
 
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h2 className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-500">
-                      Barn
-                    </h2>
-                    <button className="secondary-button" type="button" onClick={addChild}>
-                      Legg til barn
+              <label className="field">
+                <span>Pressnivå</span>
+                <select
+                  value={form.difficulty}
+                  onChange={(event) =>
+                    setForm((current) => ({
+                      ...current,
+                      difficulty: event.target.value as DifficultyLevel,
+                    }))
+                  }
+                >
+                  <option value="easy">Enkel – lett å svare på</option>
+                  <option value="medium">Middels – noen motspørsmål</option>
+                  <option value="advanced">Avansert – mer press og flere dilemmaer</option>
+                </select>
+              </label>
+            </div>
+
+            <div className="mt-4 grid gap-4 sm:grid-cols-2">
+              <label className="field sm:col-span-2">
+                <span>Tema</span>
+                <input
+                  type="text"
+                  placeholder="Velg et tema under eller skriv inn ditt eget"
+                  value={form.theme}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, theme: event.target.value }))
+                  }
+                />
+              </label>
+
+              <div className="sm:col-span-2 flex flex-wrap gap-2">
+                {themeSuggestions.map((suggestion) => (
+                  <button
+                    key={suggestion}
+                    className={`tag-button ${form.theme === suggestion ? "tag-button-active" : ""}`}
+                    type="button"
+                    onClick={() =>
+                      setForm((current) => ({
+                        ...current,
+                        theme: current.theme === suggestion ? "" : suggestion,
+                      }))
+                    }
+                  >
+                    {suggestion}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mt-6 space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-500">
+                    Barn
+                  </p>
+                  <p className="mt-1 text-sm text-stone-600">
+                    Maks {MAX_CHILDREN} barn i denne piloten.
+                  </p>
+                </div>
+                <button
+                  className="secondary-button"
+                  type="button"
+                  onClick={addChild}
+                  disabled={form.children.length >= MAX_CHILDREN}
+                >
+                  Legg til barn
+                </button>
+              </div>
+
+              {form.children.map((child, index) => (
+                <div key={`${index}-${child.name}`} className="child-card">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-500">
+                        Barn {index + 1}
+                      </p>
+                    </div>
+                    <button
+                      className="danger-button"
+                      type="button"
+                      onClick={() => removeChild(index)}
+                      disabled={form.children.length === 1}
+                    >
+                      Fjern barn
                     </button>
                   </div>
 
-                  <div className="space-y-3">
-                    {form.children.map((child, index) => (
-                      <div
-                        key={`${index}-${child.name}`}
-                        className="grid gap-3 rounded-2xl border border-stone-200 bg-white p-4 sm:grid-cols-[1fr_120px_auto]"
-                      >
-                        <label className="field">
-                          <span>Navn</span>
-                          <input
-                            type="text"
-                            value={child.name}
-                            onChange={(event) => updateChild(index, "name", event.target.value)}
-                          />
-                        </label>
+                  <div className="mt-4 grid gap-4 md:grid-cols-2">
+                    <label className="field">
+                      <span>Navn</span>
+                      <input
+                        type="text"
+                        value={child.name}
+                        onChange={(event) => updateChild(index, "name", event.target.value)}
+                      />
+                    </label>
 
-                        <label className="field">
-                          <span>Alder</span>
-                          <input
-                            type="number"
-                            min={4}
-                            max={18}
-                            value={child.age}
-                            onChange={(event) => updateChild(index, "age", event.target.value)}
-                          />
-                        </label>
+                    <label className="field">
+                      <span>Alder</span>
+                      <input
+                        type="number"
+                        min={6}
+                        max={16}
+                        value={child.age}
+                        onChange={(event) => updateChild(index, "age", event.target.value)}
+                      />
+                    </label>
 
-                        <div className="flex items-end">
-                          <button
-                            className="secondary-button w-full"
-                            type="button"
-                            onClick={() => removeChild(index)}
-                            disabled={form.children.length === 1}
-                          >
-                            Fjern
-                          </button>
-                        </div>
-                      </div>
-                    ))}
+                    <label className="field">
+                      <span>Temperament</span>
+                      <input
+                        type="text"
+                        placeholder="Rolig, impulsiv, følsom, vil virke tøff..."
+                        value={child.temperament ?? ""}
+                        onChange={(event) =>
+                          updateChild(index, "temperament", event.target.value)
+                        }
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span>Aktuell utfordring</span>
+                      <input
+                        type="text"
+                        placeholder="Vennskap, sinne, løgn, nytt hjem, nett..."
+                        value={child.focus ?? ""}
+                        onChange={(event) => updateChild(index, "focus", event.target.value)}
+                      />
+                    </label>
                   </div>
                 </div>
-
-                {formErrors.length > 0 ? (
-                  <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                    {formErrors.map((error) => (
-                      <p key={error}>{error}</p>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
-                    Klar til å starte økten.
-                  </div>
-                )}
-
-                <button
-                  className="primary-button"
-                  type="button"
-                  onClick={createPlan}
-                  disabled={formErrors.length > 0}
-                >
-                  Start
-                </button>
-              </div>
+              ))}
             </div>
+
+            <div className="mt-6 space-y-4">
+              {formErrors.length > 0 ? (
+                <div className="rounded-2xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                  {formErrors.map((error) => (
+                    <p key={error}>{error}</p>
+                  ))}
+                </div>
+              ) : (
+                <div className="rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">
+                  Klar til å bygge en gratis økt uten registrering.
+                </div>
+              )}
+
+              <button
+                className="primary-button"
+                type="button"
+                onClick={createPlan}
+                disabled={formErrors.length > 0}
+              >
+                Start gratis og bygg guide
+              </button>
+            </div>
+          </div>
+
+          <div className="space-y-6">
+            <section className="rounded-[1.75rem] border border-stone-200/80 bg-white/90 p-6 shadow-[0_18px_50px_rgba(41,37,36,0.08)]">
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-500">
+                Ofte spurt
+              </p>
+              <div className="mt-4 space-y-4">
+                <div className="faq-item">
+                  <strong>Må jeg registrere meg?</strong>
+                  <p>Nei. Denne piloten er åpen og gratis.</p>
+                </div>
+                <div className="faq-item">
+                  <strong>Hvor lagres dataene?</strong>
+                  <p>I nettleseren på enheten din, ikke i en egen database i denne versjonen.</p>
+                </div>
+                <div className="faq-item">
+                  <strong>Hvor raskt merker en familie effekt?</strong>
+                  <p>Som regel ser du først effekt når samme type samtale øves flere ganger over noen uker.</p>
+                </div>
+                <div className="faq-item">
+                  <strong>Hva hvis økten blir for vanskelig?</strong>
+                  <p>Stopp, reguler ned, bekreft følelsen, og kom tilbake senere. Dette er et verktøy, ikke et krav om å presse gjennom.</p>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-[1.75rem] border border-stone-200/80 bg-white/90 p-6 shadow-[0_18px_50px_rgba(41,37,36,0.08)]">
+              <p className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-500">
+                Om piloten
+              </p>
+              <div className="mt-4 space-y-4 text-sm leading-6 text-stone-700">
+                <p>KlokPrat er en tidlig produktpilot for foreldre som vil trene vanskelige samtaler hjemme, uten å måtte finne på alt selv.</p>
+                <p>Denne versjonen bruker strukturerte scenariomal og lokal generering i nettleseren for å holde terskelen lav og personvernet bedre.</p>
+                <p>
+                  Gi tilbakemelding eller rapporter et problem her:{" "}
+                  <a
+                    className="text-amber-700 underline decoration-amber-300 underline-offset-4"
+                    href="https://github.com/krist-oslo-byte/parenting-session-app/issues/new"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    GitHub Issues
+                  </a>
+                </p>
+              </div>
+            </section>
+
+            {history.length > 0 ? (
+              <section className="rounded-[1.75rem] border border-stone-200/80 bg-white/90 p-6 shadow-[0_18px_50px_rgba(41,37,36,0.08)]">
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-500">
+                  Tidligere økter
+                </p>
+                <div className="mt-4 space-y-3">
+                  {history.map((item, index) => (
+                    <div key={`${item.createdAt}-${item.title}-${index}`} className="history-item">
+                      <strong>{item.title}</strong>
+                      <span>{item.theme}</span>
+                      <span>{item.participants}</span>
+                      <small>{item.createdAt}</small>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            ) : null}
           </div>
         </section>
 
@@ -392,31 +755,30 @@ export default function Home() {
               <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
                 <div>
                   <p className="text-sm font-semibold uppercase tracking-[0.16em] text-stone-500">
-                    Øktoppsett
+                    Aktiv økt
                   </p>
                   <h2 className="mt-2 font-serif text-3xl leading-tight text-stone-950">
                     {plan.title}
                   </h2>
+                  <p className="mt-2 text-sm leading-6 text-stone-600">
+                    {plan.theme} • {plan.durationLabel} • {plan.ageGuidance}
+                  </p>
                 </div>
 
-                <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                  <div className="summary-chip">
-                    <dt>Tema</dt>
-                    <dd>{plan.theme}</dd>
-                  </div>
-                  <div className="summary-chip">
-                    <dt>Varighet</dt>
-                    <dd>{plan.durationLabel}</dd>
-                  </div>
+                <dl className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
                   <div className="summary-chip">
                     <dt>Deltakere</dt>
                     <dd>{plan.participantsLabel}</dd>
                   </div>
                   <div className="summary-chip">
-                    <dt>Steg</dt>
+                    <dt>Fremdrift</dt>
                     <dd>
                       {currentStepIndex + 1} av {plan.steps.length}
                     </dd>
+                  </div>
+                  <div className="summary-chip">
+                    <dt>Status</dt>
+                    <dd>Lokalt lagret på denne enheten</dd>
                   </div>
                 </dl>
               </div>
@@ -456,7 +818,7 @@ export default function Home() {
 
                     <div className="flex flex-wrap gap-2">
                       <button className="secondary-button" type="button" onClick={resetSession}>
-                        Ny økt
+                        Lukk økten
                       </button>
                       <button className="secondary-button" type="button" onClick={copyCurrentStep}>
                         {copied ? "Kopiert" : "Kopier steg"}
@@ -568,7 +930,7 @@ export default function Home() {
                         type="button"
                         onClick={() => setSupportView("help")}
                       >
-                        Hjelp til forelder
+                        Støtte til forelder
                       </button>
                       <button
                         className={`support-tab ${supportView === "notes" ? "support-tab-active" : ""}`}
@@ -582,7 +944,7 @@ export default function Home() {
                     <div className="assistant-panel">
                       {supportView === "help" ? (
                         <>
-                          <h3>{activeStep.helpTitle ?? "Hjelp til forelder"}</h3>
+                          <h3>{activeStep.helpTitle ?? "Støtte til forelder"}</h3>
                           <div className="space-y-3">
                             {(activeStep.helpLines ?? []).map((line) => (
                               <p key={line} className="assistant-line">
@@ -645,11 +1007,11 @@ export default function Home() {
         ) : (
           <section className="rounded-[1.75rem] border border-dashed border-stone-300 bg-white/70 p-8 text-center shadow-[0_18px_50px_rgba(41,37,36,0.05)]">
             <h2 className="font-serif text-3xl text-stone-950">
-              Trykk på start når oppsettet er klart
+              Se eksempelet over, og bygg deretter første økt
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-base leading-7 text-stone-600">
-              Da åpnes en øktvisning der forelderen får én del av manuset om gangen,
-              med neste-knapp, scenario-regenerering og notater underveis.
+              Når du trykker på start, åpnes en konkret guide med scenarioer, spørsmål,
+              støtte til forelder og lokalt lagrede notater.
             </p>
           </section>
         )}

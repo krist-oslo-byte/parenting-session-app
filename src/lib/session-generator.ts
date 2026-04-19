@@ -3,6 +3,8 @@ export type DifficultyLevel = "easy" | "medium" | "advanced";
 export type ChildInput = {
   name: string;
   age: number;
+  temperament?: string;
+  focus?: string;
 };
 
 export type SessionInput = {
@@ -33,10 +35,12 @@ export type SessionStep = {
 };
 
 export type SessionPlan = {
+  brand: string;
   title: string;
   theme: string;
   durationLabel: string;
   participantsLabel: string;
+  ageGuidance: string;
   steps: SessionStep[];
 };
 
@@ -53,25 +57,19 @@ const THEMES: ThemeDefinition[] = [
   {
     key: "sosialt-press",
     label: "Sosialt press og tydelige valg",
-    title: "Snakk tydelig under press",
+    title: "Velg tydelig når andre presser deg",
     warmupStories: [
       [
-        "Det er sen fredag ettermiddag, og barna stopper ved en liten butikk nær skolen.",
+        "Etter skolen står flere barn utenfor en liten butikk.",
         "Et barn putter en sjokolade i lomma og sier: 'Slapp av, de merker det aldri her.'",
-        "Så ser barnet rett på gruppa og sier: 'Enten gjør du det samme, eller så må du slutte å late som du er så uskyldig.'",
-        "To andre barn følger med, og den ansatte står opptatt med en kunde i kassa.",
+        "Så kommer presset: 'Enten gjør du det samme, eller så må du slutte å late som du er så ordentlig.'",
+        "To andre følger med, og ingen voksen er tett på.",
       ],
       [
-        "Det er på vei hjem fra trening, og flere barn går innom kiosken ved busstoppet.",
-        "En i gruppa river opp en energidrikk før den er betalt og ler: 'Bare gå ut med den, ingen gidder å stoppe oss.'",
-        "Så peker barnet på dere og sier: 'Hvis dere ikke blir med, må dere i hvert fall ikke sladre.'",
-        "Det er trangt i lokalet, og alle ser hvem som nøler.",
-      ],
-      [
-        "Etter skolen står en liten gjeng ved sykkelstativet.",
-        "En elev viser fram noe de nettopp tok fra klasserommet og sier: 'Det er ikke stjeling hvis ingen savner det.'",
-        "Så kommer presset: 'Nå er du enten med oss, eller så er du bare feig.'",
-        "Ingen voksen er i nærheten, og stemningen blir fort spent.",
+        "En venn vil snike i køen og drar deg med.",
+        "Barnet hvisker: 'Bare si at vi stod her hele tiden.'",
+        "Folk bak dere ser irritert bort, og du kjenner at du må velge fort.",
+        "Hvis du sier nei, kan vennen bli sur med en gang.",
       ],
     ],
     warmupQuestions: (child, index) =>
@@ -82,80 +80,72 @@ const THEMES: ThemeDefinition[] = [
             `${child.name}, hva er risikoen hvis du prøver å være nøytral?`,
           ]
         : [
-            `${child.name}, hva gjør du med kroppen med en gang: blir stående, går litt unna, eller går til kassa?`,
+            `${child.name}, hva gjør du med kroppen med en gang: blir stående, går unna, eller ber om hjelp?`,
             `${child.name}, hva er de første ordene du sier?`,
             `${child.name}, hvis vennen din blir irritert på deg, hva gjør du etterpå?`,
           ],
     childStories: (child, difficulty) => {
-      if (child.age >= 14) {
-        const stories = [
+      if (child.age >= 13) {
+        return [
           [
             "Du er i en gruppechat søndag kveld.",
-            "Noen legger ut et skjermbilde av en medelev under en dårlig framføring, og folk begynner å sende le-emojier.",
+            "Noen legger ut et skjermbilde av en medelev under en dårlig framføring, og folk begynner å le.",
             "Så skriver en annen: 'Legg det ut på storyen din.'",
             "Alle kan se om du blir med, holder deg stille, eller stopper det.",
           ],
           [
-            "Du sitter med venner etter skolen, og noen viser en sexvideo-lignende sexvideo-spøk laget med AI av en medelev.",
-            "En i gruppa sier: 'Bare send den videre, alle kommer til å dø av latter.'",
-            "Så får du mobilen stukket mot deg og blir bedt om å sende den til flere.",
-            "Du skjønner at hvis du sier nei, kommer noen til å kalle deg svak eller vanskelig.",
+            "Du får en privat melding fra en venn som vil at du skal dekke over en løgn de allerede har fortalt.",
+            "Hvis du sier sannheten, kan vennen bli sint og du kan miste status i gruppa.",
+            "Hvis du blir med på løgnen, vet du at noen andre kan få skylden.",
+            "Du må velge før flere begynner å spørre deg direkte.",
           ],
-          [
-            "Du er i garderoben etter trening.",
-            "Noen begynner å snakke hardt om en lagkamerat som ikke er der og vil at du skal bekrefte historien deres.",
-            "De sier: 'Du vet jo at det er sant, bare si det.'",
-            "Hvis du ikke blir med, kan stemningen snu mot deg veldig fort.",
-          ],
+          difficulty === "advanced"
+            ? [
+                "Du blir bedt om å være med i en privat chat der folk planlegger å henge ut en medelev.",
+                "De sier at du ikke trenger å skrive noe, bare være med og reagere.",
+                "Du vet at det å være passiv også gjør deg til en del av det.",
+                "Samtidig vet du at et nei kan koste deg sosialt med en gang.",
+              ]
+            : [
+                "Du er i garderoben etter trening.",
+                "Noen begynner å snakke hardt om en lagkamerat som ikke er der og vil at du skal bekrefte historien deres.",
+                "De sier: 'Du vet jo at det er sant, bare si det.'",
+                "Hvis du ikke blir med, kan stemningen snu mot deg veldig fort.",
+              ],
         ];
-
-        if (difficulty === "advanced") {
-          stories.unshift([
-            "Du får en privat melding fra en venn som vil at du skal dekke over en løgn de allerede har fortalt i en chat.",
-            "Hvis du sier sannheten, kan vennen bli sint og du kan miste tillit i gruppa på kort sikt.",
-            "Hvis du blir med på løgnen, vet du at en annen person kan få skylden for noe de ikke har gjort.",
-            "Du må velge før andre begynner å spørre deg direkte.",
-          ]);
-        }
-
-        return stories;
       }
 
-      if (child.age >= 10) {
-        const stories = [
+      if (child.age >= 9) {
+        return [
           [
-            "I friminuttet har du med noe nytt på skolen, og en klassekamerat låner det.",
-            "Litt senere ser du at det har blitt sendt rundt, og nå mangler en del.",
-            "Når du ber om å få det tilbake, sier klassekameraten: 'Hvorfor lager du så stor greie ut av det? Det er bare en ting.'",
-            "To andre barn står og hører på.",
+            "I friminuttet låner en klassekamerat noe av deg og gir det videre til andre uten å spørre.",
+            "Når du ber om det tilbake, sier barnet: 'Det er bare en ting. Hvorfor lager du så stor greie ut av det?'",
+            "To andre barn står og ser på.",
+            "Du kjenner at du må svare tydelig uten å miste kontrollen.",
           ],
           [
             "Du står i kø til kantina da en venn presser seg foran og drar deg med.",
-            "Bak dere står en elev som blir irritert og sier at dere sniker.",
-            "Vennen din hvisker: 'Bare si at vi sto her hele tiden.'",
+            "Bak dere står en elev som sier at dere sniker.",
+            "Vennen din hvisker: 'Bare si at vi stod her hele tiden.'",
             "Alle rundt kan høre hva du velger å gjøre.",
           ],
-          [
-            "På skolen jobber dere i gruppe, og en venn ber deg si til læreren at dere begge har gjort like mye arbeid.",
-            "Du vet at det ikke stemmer, fordi du gjorde nesten alt.",
-            "Vennen ser rett på deg og sier: 'Hvis du ikke backer meg nå, er du en dårlig venn.'",
-            "Det er bare noen sekunder til læreren kommer bort til bordet.",
-          ],
+          difficulty === "advanced"
+            ? [
+                "På skolen jobber dere i gruppe, og en venn ber deg si til læreren at dere begge gjorde like mye.",
+                "Du vet at det ikke stemmer, fordi du gjorde nesten alt.",
+                "Vennen sier: 'Hvis du ikke backer meg nå, er du en dårlig venn.'",
+                "Læreren kommer bort om noen sekunder.",
+              ]
+            : [
+                "Et barn vil at du skal bli med på en regel som åpenbart er urettferdig mot et annet barn.",
+                "Barnet sier at hvis du ikke er med, ødelegger du hele leken.",
+                "Du merker at de andre ser på hva du gjør.",
+                "Det er lett å bli med bare for å slippe presset.",
+              ],
         ];
-
-        if (difficulty === "advanced") {
-          stories.unshift([
-            "Klassen øver til framføring, og en venn ber deg si at hen også øvde masse selv om du vet at det ikke stemmer.",
-            "Vennen sier at dere må stå sammen, ellers kommer hen til å se dum ut foran resten av klassen.",
-            "Læreren er på vei bort og kommer til å spørre dere begge hvordan arbeidet gikk.",
-            "Du kjenner både lojalitet og irritasjon på samme tid.",
-          ]);
-        }
-
-        return stories;
       }
 
-      const stories = [
+      return [
         [
           "Du bygger med klosser på skolen.",
           "Et annet barn tar en av klossene dine og sier: 'Jeg trenger den mer enn deg.'",
@@ -168,30 +158,13 @@ const THEMES: ThemeDefinition[] = [
           "Barnet sier: 'Du kan bare vente til jeg er ferdig.'",
           "Andre barn ser på om du sier noe eller bare lar det skje.",
         ],
-        [
-          "I garderoben tar et annet barn plassen din på benken og dytter sekken din ned på gulvet.",
-          "Barnet sier: 'Finn deg et annet sted.'",
-          "Den voksne er opptatt med noen andre.",
-          "Du kjenner at du både blir sint og litt stresset.",
-        ],
       ];
-
-      if (difficulty === "advanced") {
-        stories.unshift([
-          "Du er med i en lek, og et annet barn endrer reglene midt i leken så du plutselig ikke får være med lenger.",
-          "Barnet sier at det er de andre som bestemmer nå.",
-          "Ingen voksen er akkurat der, og de andre barna ser på hva du gjør.",
-          "Du må velge om du vil protestere, finne en annen løsning, eller gå vekk.",
-        ]);
-      }
-
-      return stories;
     },
   },
   {
     key: "penger-og-aerlighet",
     label: "Penger, ærlighet og press",
-    title: "Si sannheten når det koster",
+    title: "Si sannheten når det koster litt",
     warmupStories: [
       [
         "En ansatt gir deg for mye penger tilbake etter skolen.",
@@ -204,12 +177,6 @@ const THEMES: ThemeDefinition[] = [
         "Kassadamen scanner bare én vare selv om dere har to.",
         "Vennen din sier lavt: 'Bare gå. Det er deres feil, ikke vår.'",
         "Du skjønner at du må velge før dere er ute av døra.",
-      ],
-      [
-        "På et loppemarked får du en hundrelapp for mye tilbake.",
-        "En venn ser det og sier: 'De har masse penger uansett.'",
-        "Så kommer presset: 'Ikke ødelegg stemningen nå.'",
-        "De voksne rundt dere er opptatt med andre ting.",
       ],
     ],
     warmupQuestions: (child, index) =>
@@ -225,8 +192,8 @@ const THEMES: ThemeDefinition[] = [
             `${child.name}, hva er risikoen hvis du later som du ikke merket det?`,
           ],
     childStories: (child, difficulty) => {
-      if (child.age >= 14) {
-        const stories = [
+      if (child.age >= 13) {
+        return [
           [
             "Du selger et gammelt headset til noen fra skolen.",
             "Etter at personen har betalt, merker du at lyden av og til kutter ut på én side.",
@@ -235,36 +202,32 @@ const THEMES: ThemeDefinition[] = [
           ],
           [
             "Du finner ut at du har blitt vippset for mye etter å ha hjulpet noen med en oppgave.",
-            "Personen har tydeligvis skrevet feil beløp og ikke merket det ennå.",
             "En venn sier: 'De kommer aldri til å oppdage det, bare behold det.'",
-            "Du vet at det føles fint å ha pengene, men det er ikke dine.",
+            "Du vet at det føles fint å ha pengene, men de er ikke dine.",
+            "Du må velge før det blir for sent å si ifra på en naturlig måte.",
           ],
-          [
-            "Du og en venn selger brukte klær på nett.",
-            "En kjøper spør om plagget har noen feil, og vennen din sparker borti deg under bordet for at du skal si nei.",
-            "Du vet at plagget faktisk har en liten skade som synes hvis man ser godt etter.",
-            "Det står om dere får solgt det eller ikke på hva du svarer nå.",
-          ],
+          difficulty === "advanced"
+            ? [
+                "Du oppdager at en venn har ført opp navnet ditt på en deling av penger som ikke er helt ærlig.",
+                "Hvis du sier ifra, kan det skape dårlig stemning og koste dere begge noe.",
+                "Hvis du tier, drar du fordel av noe du vet er feil.",
+                "Ingen andre vet ennå at du har oppdaget det.",
+              ]
+            : [
+                "Du og en venn selger brukte klær på nett.",
+                "En kjøper spør om plagget har noen feil, og vennen din vil at du skal si nei.",
+                "Du vet at plagget faktisk har en liten skade.",
+                "Det står om dere får solgt det eller ikke på hva du svarer nå.",
+              ],
         ];
-
-        if (difficulty === "advanced") {
-          stories.unshift([
-            "Du oppdager at en venn har ført opp navnet ditt på en deling av penger som ikke er helt ærlig.",
-            "Hvis du sier ifra, kan det skape dårlig stemning og koste dere begge noe.",
-            "Hvis du tier, drar du fordel av noe du vet er feil.",
-            "Ingen andre vet ennå at du har oppdaget det.",
-          ]);
-        }
-
-        return stories;
       }
 
-      if (child.age >= 10) {
-        const stories = [
+      if (child.age >= 9) {
+        return [
           [
             "På en skolemesse hjelper du til ved en bod.",
-            "Et yngre barn gir deg for mye penger ved en feil, og vennen din ved siden av sier lavt: 'Ikke si noe. Vi trenger flere billetter til laget vårt.'",
-            "Det yngre barnet har allerede snudd seg og gått videre.",
+            "Et yngre barn gir deg for mye penger ved en feil, og vennen din sier: 'Ikke si noe. Vi trenger flere billetter til laget vårt.'",
+            "Barnet har allerede snudd seg og gått videre.",
             "Du må velge raskt om du skal stoppe barnet eller la det gå.",
           ],
           [
@@ -273,27 +236,23 @@ const THEMES: ThemeDefinition[] = [
             "Det er lang kø bak dere, og ingen andre ser feilen.",
             "Du kjenner at det haster å bestemme seg.",
           ],
-          [
-            "Klassen samler inn penger til en tur, og du sitter ved bordet når en medelev legger igjen tjue kroner for mye.",
-            "Vennen ved siden av deg sier at dere bare kan legge dem i klassekassa uten å si noe.",
-            "Du vet at pengene da blir brukt til noe bra, men de tilhører fortsatt noen andre.",
-            "Læreren kommer snart tilbake til rommet.",
-          ],
+          difficulty === "advanced"
+            ? [
+                "Klassen samler inn penger til en tur, og du sitter ved bordet når en medelev legger igjen tjue kroner for mye.",
+                "Vennen ved siden av deg sier at dere bare kan legge dem i klassekassa uten å si noe.",
+                "Du vet at pengene da blir brukt til noe bra, men de tilhører fortsatt noen andre.",
+                "Læreren kommer snart tilbake til rommet.",
+              ]
+            : [
+                "Du får for mange lodd da du betaler på et skolearrangement.",
+                "Den voksne i boden merker ingenting.",
+                "Et annet barn sier at dette bare er flaks.",
+                "Du kjenner at det er fristende å være stille.",
+              ],
         ];
-
-        if (difficulty === "advanced") {
-          stories.unshift([
-            "Du og en venn selger kaker for laget, og en voksen betaler litt for mye uten å merke det.",
-            "Vennen din sier at dere kan bruke det ekstra til å nå målet fortere.",
-            "Du vet at pengene går til noe bra, men at de fortsatt ikke er deres.",
-            "Den voksne er allerede på vei bort fra bordet.",
-          ]);
-        }
-
-        return stories;
       }
 
-      const stories = [
+      return [
         [
           "Du kjøper en liten snack sammen med en voksen.",
           "Den ansatte gir deg to mynter for mye tilbake.",
@@ -306,30 +265,13 @@ const THEMES: ThemeDefinition[] = [
           "En venn smiler og sier: 'Bare gå fort.'",
           "Ingen stopper dere, så du må velge selv.",
         ],
-        [
-          "På skolearrangementet får du for mange lodd da du betaler.",
-          "Den voksne i boden er travel og merker ingenting.",
-          "Et annet barn sier at dette bare er flaks.",
-          "Du kjenner at det er fristende å være stille.",
-        ],
       ];
-
-      if (difficulty === "advanced") {
-        stories.unshift([
-          "Du får utdelt for mange bonger i en bod på skoleavslutningen.",
-          "Et annet barn sier at du bare kan bruke dem siden den voksne allerede er opptatt.",
-          "Du vet at ingen kom til å merke det med en gang.",
-          "Likevel kjenner du at det ikke helt er ditt å beholde.",
-        ]);
-      }
-
-      return stories;
     },
   },
   {
     key: "nett-og-omdomme",
     label: "Nett, dømmekraft og omdømme",
-    title: "Tenk før du blir med",
+    title: "Tenk før du blir med på nett",
     warmupStories: [
       [
         "Et bilde fra skolen begynner å spre seg i en klassechat.",
@@ -340,14 +282,8 @@ const THEMES: ThemeDefinition[] = [
       [
         "Noen i klassen starter en avstemning i chatten om hvem som er mest rar på trinnet.",
         "Navn begynner å dukke opp, og folk stemmer fort for å være med.",
-        "Så kommer en melding til deg: 'Kom igjen da, stem på noen.'",
-        "Du kjenner at du må velge om du skal delta, si fra, eller holde deg unna.",
-      ],
-      [
-        "Et skjermopptak av en elev på vei til tavla begynner å gå rundt på mobilen til flere.",
-        "Folk ler og vil sende det videre til enda flere klasser.",
-        "Så spør noen deg direkte om du også vil ha videoen.",
-        "Du vet at valget ditt blir lagt merke til med en gang.",
+        "Så kommer meldingen til deg: 'Kom igjen da, stem på noen.'",
+        "Du kjenner at valget ditt blir lagt merke til med en gang.",
       ],
     ],
     warmupQuestions: (child, index) =>
@@ -363,12 +299,12 @@ const THEMES: ThemeDefinition[] = [
             `${child.name}, hva er det ryddigste neste steget ditt?`,
           ],
     childStories: (child, difficulty) => {
-      if (child.age >= 14) {
-        const stories = [
+      if (child.age >= 13) {
+        return [
           [
             "En venn ber deg like og dele en hard vits om en lærer.",
             "Vennen sier at det bare er en spøk og at alle andre gjør det.",
-            "Hvis du nekter, kan du bli kalt kjedelig og kanskje ikke bli invitert med på ting på en stund.",
+            "Hvis du nekter, kan du bli kalt kjedelig og kanskje ikke bli invitert med på ting.",
             "Du kjenner at valget handler både om humor, lojalitet og rygggrad.",
           ],
           [
@@ -377,72 +313,58 @@ const THEMES: ThemeDefinition[] = [
             "Telefonen blir holdt fram mot deg, og du blir bedt om å sende det fra din konto.",
             "Du vet at det er lettere å gli med enn å stoppe det.",
           ],
-          [
-            "En venn vil bruke kontoen din til å poste en spydig kommentar anonymt.",
-            "De sier det er tryggere hvis det ikke kan spores til dem.",
-            "Du forstår at du både kan bli tatt og at noen andre kan bli såret.",
-            "Likevel er presset der fordi du ikke vil være den som ødelegger stemningen.",
-          ],
+          difficulty === "advanced"
+            ? [
+                "Du blir bedt om å være med i en privat chat der folk planlegger å klippe sammen ydmykende små videoer av andre elever.",
+                "De sier at du ikke trenger å lage noe selv, bare være med og reagere.",
+                "Du vet at passivitet også gjør deg til en del av det.",
+                "Samtidig vet du at et nei kan koste deg sosialt med en gang.",
+              ]
+            : [
+                "En venn vil bruke kontoen din til å poste en spydig kommentar anonymt.",
+                "De sier det er tryggere hvis det ikke kan spores til dem.",
+                "Du forstår at noen andre kan bli såret og at du kan bli tatt.",
+                "Likevel er presset der fordi du ikke vil være den som ødelegger stemningen.",
+              ],
         ];
-
-        if (difficulty === "advanced") {
-          stories.unshift([
-            "Du blir bedt om å være med i en privat chat der folk planlegger å klippe sammen ydmykende små videoer av andre elever.",
-            "De sier at du ikke trenger å lage noe selv, bare være med og reagere.",
-            "Du vet at det å bare være passiv også gjør deg til en del av det.",
-            "Samtidig vet du at et nei kan koste deg sosialt med en gang.",
-          ]);
-        }
-
-        return stories;
       }
 
-      if (child.age >= 10) {
-        const stories = [
+      if (child.age >= 9) {
+        return [
           [
-            "En venn vil sende en stygg talemelding om et annet barn i klassen og spør om hen kan bruke nettbrettet ditt til det.",
+            "En venn vil sende en stygg talemelding om et annet barn i klassen og spør om hen kan bruke nettbrettet ditt.",
             "Vennen sier: 'Det er bedre om det ikke kommer fra meg.'",
             "Du vet at meldingen vil såre det andre barnet hvis den blir sendt videre.",
             "Det skjer fort, og du kjenner at du må stoppe eller la det skje.",
           ],
           [
-            "Du sitter ved siden av en venn som vil ta et bilde av en medelev uten å spørre og sende det til andre.",
+            "Du sitter ved siden av en venn som vil ta et bilde av en medelev uten å spørre og sende det videre.",
             "Vennen sier at det bare er for gøy og at ingen kommer til å bry seg.",
             "Telefonen er allerede oppe, og du skjønner at du må reagere med en gang.",
             "Andre barn rundt dere følger med og venter på reaksjonen din.",
           ],
-          [
-            "I en felles chat begynner noen å skrive stygge ting om en elev som ikke er pålogget.",
-            "En venn sender deg privat melding og spør hvorfor du ikke skriver noe morsomt tilbake.",
-            "Du ser at det blir forventet at du skal bli med.",
-            "Samtidig kjenner du at det er noe ved det som ikke føles riktig.",
-          ],
+          difficulty === "advanced"
+            ? [
+                "En venn vil at du skal hjelpe til med å lage en falsk melding for å lure et annet barn i klassen.",
+                "Vennen sier at det bare er en spøk og at ingen trenger å få vite at du hjalp til.",
+                "Du kjenner at det virker spennende der og da, men også ganske slemt.",
+                "Du må velge før meldingen blir sendt.",
+              ]
+            : [
+                "I en felles chat begynner noen å skrive stygge ting om en elev som ikke er pålogget.",
+                "En venn sender deg privat melding og spør hvorfor du ikke skriver noe morsomt tilbake.",
+                "Du ser at det blir forventet at du skal bli med.",
+                "Samtidig kjenner du at det er noe ved det som ikke føles riktig.",
+              ],
         ];
-
-        if (difficulty === "advanced") {
-          stories.unshift([
-            "En venn vil at du skal hjelpe til med å lage en falsk melding for å lure et annet barn i klassen.",
-            "Vennen sier at det bare er en spøk og at ingen trenger å få vite at du hjalp til.",
-            "Du kjenner at det virker spennende der og da, men også ganske slemt.",
-            "Du må velge før meldingen blir sendt.",
-          ]);
-        }
-
-        return stories;
       }
 
-      const stories = [
+      return [
         [
           "Et barn vil bruke enheten din til å ta et tullebilde av et annet barn uten å spørre først.",
           "Barnet sier at det bare er for gøy og lover å slette det senere.",
           "Andre barn er allerede i ferd med å le.",
           "Du kjenner at det er lett å bli dratt med i øyeblikket.",
-        ],
-        [
-          "En venn vil spille inn et annet barn som danser og sende videoen rundt.",
-          "Vennen sier at det blir morsomt for alle.",
-          "Du ser at barnet som blir filmet ikke vet hva som skjer.",
-          "Du må velge raskt hva du gjør med situasjonen.",
         ],
         [
           "Noen vil låne nettbrettet ditt for å sende en tullemelding til et annet barn.",
@@ -451,18 +373,239 @@ const THEMES: ThemeDefinition[] = [
           "Det er opp til deg om du setter en grense eller ikke.",
         ],
       ];
-
-      if (difficulty === "advanced") {
-        stories.unshift([
-          "Et annet barn vil låne enheten din for å sende en hemmelig melding som kan gjøre et tredje barn lei seg.",
-          "Barnet sier at det bare er tull og at du ikke må være så streng.",
-          "Flere ser på og håper du sier ja.",
-          "Du må bestemme deg raskt før meldingen blir sendt.",
-        ]);
-      }
-
-      return stories;
     },
+  },
+  {
+    key: "vennskap-og-mobbing",
+    label: "Vennskap, utenforskap og mobbing",
+    title: "Stå stødig når noen holdes utenfor",
+    warmupStories: [
+      [
+        "I en bursdagssamtale begynner flere barn å planlegge hvem som ikke skal få være med i neste lek.",
+        "Noen sier: 'Bare ikke si det til henne ennå.'",
+        "Alle ser mot deg for å se om du blir med eller protesterer.",
+        "Du kjenner at det er ubehagelig å skille seg ut.",
+      ],
+      [
+        "I friminuttet blir ett barn alltid valgt sist.",
+        "Noen ler og sier at det er fordi barnet er rart.",
+        "Så kommer spørsmålet til deg: 'Vi trenger ikke ta med henne, vel?'",
+        "Det skjer fort, og du må velge hva du gjør i gruppa.",
+      ],
+    ],
+    warmupQuestions: (child, index) =>
+      index % 2 === 0
+        ? [
+            `${child.name}, hva gjør du med én gang når noen holdes utenfor?`,
+            `${child.name}, hva sier du, helt konkret?`,
+            `${child.name}, hva koster det deg å si noe?`,
+          ]
+        : [
+            `${child.name}, hva er det letteste valget her?`,
+            `${child.name}, hva er det modigste lille steget du kan ta?`,
+            `${child.name}, hva gjør du hvis gruppa himler med øynene?`,
+          ],
+    childStories: (child, difficulty) => [
+      [
+        "Et barn i klassen blir alltid valgt sist i lag.",
+        "I dag foreslår noen at dere bare kan starte uten barnet.",
+        "Du ser at barnet later som det ikke bryr seg.",
+        "Alle rundt deg venter på om du sier noe eller ikke.",
+      ],
+      [
+        "En venn vil at du skal la være å invitere en bestemt person fordi det blir mindre drama da.",
+        "Du vet at den personen allerede føler seg litt utenfor.",
+        "Hvis du protesterer, kan vennen din mene at du overdriver.",
+        "Du må velge hva slags venn du vil være i praksis.",
+      ],
+      difficulty === "advanced"
+        ? [
+            "Noen i vennegjengen lager en intern spøk som egentlig bare går ut på å gjøre én person liten.",
+            "Alle ler, og det ser uskyldig ut på overflaten.",
+            "Men du merker at personen som rammes blir stille hver gang.",
+            "Spørsmålet er om du tør å bryte stemningen for å stoppe det.",
+          ]
+        : [
+            "Et barn blir ertet for klærne sine i friminuttet.",
+            "Du er ikke den som startet det, men du står der og hører på.",
+            "Noen ser på deg og sier: 'Det er jo sant, da.'",
+            "Du kjenner at stillhet også blir et valg.",
+          ],
+    ],
+  },
+  {
+    key: "folelser-og-konflikter",
+    label: "Følelser, sinne og konflikt",
+    title: "Snakk bedre når følelsene blir store",
+    warmupStories: [
+      [
+        "To søsken begynner å krangle om noe lite som plutselig blir stort.",
+        "Den ene sier: 'Du gjør alltid dette mot meg.'",
+        "Den andre blir så sint at stemmen går rett opp.",
+        "Alle kjenner at det er sekunder unna at noen smeller til med noe sårt.",
+      ],
+      [
+        "Et barn mister kontrollen i en lek og vil gå sin vei i sinne.",
+        "Et annet barn roper etter og gjør det bare verre.",
+        "Du ser at alt går fortere og fortere.",
+        "Spørsmålet er hva som hjelper når følelsen allerede har tatt over.",
+      ],
+    ],
+    warmupQuestions: (child, index) =>
+      index % 2 === 0
+        ? [
+            `${child.name}, hva skjer i kroppen din rett før du sier noe dumt når du er sint?`,
+            `${child.name}, hva kunne du sagt i stedet?`,
+            `${child.name}, hva er forskjellen på et ærlig svar og et sårt svar?`,
+          ]
+        : [
+            `${child.name}, hva gjør du når du kjenner at det koker?`,
+            `${child.name}, hva er det første tegnet på at du mister kontrollen?`,
+            `${child.name}, hva kan du gjøre som er tydelig uten å gjøre alt verre?`,
+          ],
+    childStories: (child, difficulty) => [
+      [
+        "Du blir veldig irritert på et søsken eller en venn fordi du føler deg urettferdig behandlet.",
+        "Den andre personen sier noe som får deg til å ville svare hardt tilbake.",
+        "Du kjenner at hele kroppen vil vinne krangelen med én gang.",
+        "Du må velge om du skal slippe ut følelsen rått eller styre den litt først.",
+      ],
+      [
+        "Noen avbryter deg flere ganger og du kjenner at du blir både sint og lei deg.",
+        "Til slutt vurderer du å si noe skarpt for å få stoppet det.",
+        "Du vet at det kunne føles godt der og da, men også gjøre alt verre etterpå.",
+        "Spørsmålet er hvordan du kan være tydelig uten å eskalere.",
+      ],
+      difficulty === "advanced"
+        ? [
+            "Du går inn i en konflikt med mye gammel irritasjon i kroppen fra før.",
+            "Det betyr at du allerede er mer ladd enn det andre ser.",
+            "En liten kommentar treffer mye hardere enn den egentlig burde.",
+            "Hvordan velger du når følelsen din egentlig handler om mer enn akkurat det som skjer nå?",
+          ]
+        : [
+            "Et barn tar plassen din eller tingen din, og du blir sint med én gang.",
+            "Du får lyst til å rive tilbake eller rope.",
+            "Samtidig vet du at du blir misforstått når du går rett i eksplosjon.",
+            "Hva gjør du i stedet?",
+          ],
+    ],
+  },
+  {
+    key: "kropp-og-grenser",
+    label: "Kropp, grenser og samtykke",
+    title: "Øv på å sette grenser tydelig",
+    warmupStories: [
+      [
+        "Et barn tar på kroppen til et annet barn på en måte som ikke virker grei, og ler det bort.",
+        "Noen andre sier: 'Det var jo bare tull.'",
+        "Den som ble utsatt ser usikker ut og sier ikke så mye.",
+        "Du må tenke på hva du gjør når noe føles feil selv om andre sier det er uskyldig.",
+      ],
+      [
+        "Noen presser på for å få en klem eller fysisk nærhet som den andre ikke virker komfortabel med.",
+        "De voksne rundt ser det ikke tydelig.",
+        "Stemningen blir rar fordi ingen vil være den som gjør det kleint.",
+        "Likevel må noen sette en grense.",
+      ],
+    ],
+    warmupQuestions: (child, index) =>
+      index % 2 === 0
+        ? [
+            `${child.name}, hvordan høres et tydelig nei ut her?`,
+            `${child.name}, hva gjør du hvis den andre ler av grensa di?`,
+            `${child.name}, hvem kan du gå til hvis noe føles feil?`,
+          ]
+        : [
+            `${child.name}, hvordan kjenner du i kroppen at noe ikke er greit?`,
+            `${child.name}, hva kan du si hvis du vil stoppe noe uten å forklare alt?`,
+            `${child.name}, hva gjør du hvis en venn ber deg holde det hemmelig?`,
+          ],
+    childStories: (child, difficulty) => [
+      [
+        "Noen i klassen eller på trening går for langt med tulling, dytting eller berøring.",
+        "De sier at du overdriver hvis du reagerer.",
+        "Du kjenner at noe ikke er greit, men du vil heller ikke skape en stor scene.",
+        "Du må velge hvordan du setter en grense som faktisk merkes.",
+      ],
+      [
+        "En venn vil låne mobilen din for å vise eller spørre om noe som gjelder kropp, bilde eller privat prat.",
+        "Det føles litt feil, men du vil ikke virke vanskelig.",
+        "Samtidig vet du at det er lettere å stoppe tidlig enn å rydde opp etterpå.",
+        "Hva gjør du når grensa di ikke passer med vennens forventning?",
+      ],
+      difficulty === "advanced"
+        ? [
+            "Noen prøver å få deg til å bære på en hemmelighet som gjelder kropp, grenser eller noe som føles utrygt.",
+            "De sier at du ikke må si det til noen voksne.",
+            "Du skjønner at stillhet kanskje beskytter feil person.",
+            "Spørsmålet er hva lojalitet egentlig betyr i en sånn situasjon.",
+          ]
+        : [
+            "Et barn fortsetter med tulling som er fysisk selv om du sier stopp.",
+            "Barnet ler og sier at det bare er lek.",
+            "Du kjenner deg både sint og litt usikker på om du har lov til å gjøre en stor sak ut av det.",
+            "Hvordan setter du grensa en gang til på en tydeligere måte?",
+          ],
+    ],
+  },
+  {
+    key: "endring-og-skilsmisse",
+    label: "Endring, familie og skilsmisse",
+    title: "Gi språk til det som er vanskelig hjemme",
+    warmupStories: [
+      [
+        "Det har skjedd en stor endring hjemme, og barna merker at alt føles annerledes enn før.",
+        "En voksen prøver å holde stemningen lett, men barna bærer på spørsmål de ikke helt vet hvordan de skal stille.",
+        "Noen blir stille, andre blir korte og irritable.",
+        "Samtalen stopper lett hvis ingen tør å si det som faktisk er vanskelig.",
+      ],
+      [
+        "Et barn skal mellom to hjem og later som alt er greit, men kroppen og humøret sier noe annet.",
+        "Når noen spør hvordan det går, kommer det bare et raskt 'bra'.",
+        "Det virker lettere å lukke seg enn å forklare.",
+        "Likevel trenger barnet hjelp til å finne ord for det som skjer.",
+      ],
+    ],
+    warmupQuestions: (child, index) =>
+      index % 2 === 0
+        ? [
+            `${child.name}, hva er vanskeligst å si høyt når ting hjemme er annerledes?`,
+            `${child.name}, hvordan merker du i kroppen at noe er tungt?`,
+            `${child.name}, hva trenger du fra en voksen når du ikke vet helt hva du føler?`,
+          ]
+        : [
+            `${child.name}, hva er lettere å si enn det du egentlig tenker?`,
+            `${child.name}, hva gjør du når du savner noen eller noe, men ikke vil vise det?`,
+            `${child.name}, hva ville gjort det tryggere å snakke sant?`,
+          ],
+    childStories: (child, difficulty) => [
+      [
+        "Det er mye som har endret seg hjemme i det siste.",
+        "Kanskje bor folk annerledes, kanskje reglene er nye, eller kanskje humøret i huset er helt forandret.",
+        "Du merker at du reagerer, men det er ikke alltid lett å forklare hvordan.",
+        "Spørsmålet er hvordan du kan si noe sant uten å måtte ha alt perfekt formulert.",
+      ],
+      [
+        "Du skal fra ett hjem til et annet og kjenner at overgangen er tyngre enn du vil innrømme.",
+        "Når noen spør, frister det å bare si 'det går fint' for å slippe mer prat.",
+        "Samtidig håper en del av deg at noen skjønner at det ikke er hele sannheten.",
+        "Hva svarer du hvis du skal være litt modigere enn vanlig?",
+      ],
+      difficulty === "advanced"
+        ? [
+            "Du bærer på to følelser samtidig: lojalitet til de voksne og et sterkt behov for å si hvordan dette faktisk kjennes for deg.",
+            "Det gjør det vanskelig å være ærlig uten å føle at du svikter noen.",
+            "Du er redd for at sannheten din skal bli for mye for de voksne.",
+            "Hvordan sier du det viktigste uten å ta ansvar for alles følelser samtidig?",
+          ]
+        : [
+            "Du savner noe sånn det var før, men du vet ikke helt hvordan du skal si det uten å gjøre noen lei seg.",
+            "Derfor blir du kanskje stille, sint eller kort i stedet.",
+            "En voksen prøver å snakke med deg, men du vet ikke hvor du skal begynne.",
+            "Hva er én setning du kan starte med?",
+          ],
+    ],
   },
 ];
 
@@ -477,7 +620,8 @@ function normalizeTheme(theme?: string) {
         item.key === lowered ||
         item.label.toLowerCase() === lowered ||
         item.label.toLowerCase().includes(lowered) ||
-        lowered.includes(item.key.replaceAll("-", " ")),
+        lowered.includes(item.key.replaceAll("-", " ")) ||
+        lowered.includes(item.label.toLowerCase()),
     ) ?? null
   );
 }
@@ -497,10 +641,10 @@ function chooseTheme(input: SessionInput) {
   }
 
   if (input.difficulty_level === "easy") {
-    return THEMES[1];
+    return THEMES[4];
   }
 
-  return THEMES[0];
+  return THEMES[3];
 }
 
 function cleanName(name: string, fallbackIndex: number) {
@@ -509,11 +653,11 @@ function cleanName(name: string, fallbackIndex: number) {
 }
 
 function ageBandQuestion(child: ChildInput) {
-  if (child.age >= 14) {
-    return "Hva slags person blir du hvis hovedregelen din er: bare ikke bli det neste målet?";
+  if (child.age >= 13) {
+    return "Hva slags person blir du hvis hovedregelen din er at du bare ikke vil bli det neste målet selv?";
   }
 
-  if (child.age >= 10) {
+  if (child.age >= 9) {
     return "Hvordan kan du få fram poenget ditt tydelig uten å prøve å gjøre den andre liten?";
   }
 
@@ -522,6 +666,20 @@ function ageBandQuestion(child: ChildInput) {
 
 function notePlaceholder(stepTitle: string) {
   return `Skriv korte notater fra steget "${stepTitle}" her. Eksempel: hva barnet svarte, hva som var vanskelig, og hva du vil følge opp senere.`;
+}
+
+function childContextLines(child: ChildInput) {
+  const lines: string[] = [];
+
+  if (child.temperament?.trim()) {
+    lines.push(`Temperament / stil: ${child.temperament.trim()}`);
+  }
+
+  if (child.focus?.trim()) {
+    lines.push(`Aktuell utfordring nå: ${child.focus.trim()}`);
+  }
+
+  return lines;
 }
 
 function followUpHelp(child: ChildInput) {
@@ -538,7 +696,7 @@ function reflectionHelp(children: ChildInput[]) {
   const joinedNames = children.map((child) => child.name).join(" og ");
 
   return [
-    "Målet her er ikke å få rette svar, men å få dem til å se sin egen tenking.",
+    "Målet her er ikke å få riktige svar, men å få dem til å se sin egen tenking.",
     `Si: "${joinedNames}, ikke fortell meg hva som er riktig først. Fortell meg hva som skjedde inni dere før dere svarte."`,
     `Si: "${joinedNames}, hvor merket dere presset i kroppen?"`,
     `Si: "${joinedNames}, når ble dere mest fristet til å gi et raskt og pent svar i stedet for et ærlig svar?"`,
@@ -551,6 +709,8 @@ export function buildSessionPlan(rawInput: SessionInput): SessionPlan {
     .map((child, index) => ({
       name: cleanName(child.name, index),
       age: Number.isFinite(child.age) ? child.age : 0,
+      temperament: child.temperament?.trim() || "",
+      focus: child.focus?.trim() || "",
     }));
 
   const duration = rawInput.session_length_minutes ?? 20;
@@ -558,11 +718,11 @@ export function buildSessionPlan(rawInput: SessionInput): SessionPlan {
 
   const steps: SessionStep[] = [
     {
-      id: "parent-script",
+      id: "parent-guide",
       kind: "script",
-      title: "Foreldreskript",
+      title: "Foreldreguide",
       audience: "Felles",
-      description: "Les dette høyt før dere starter selve økten.",
+      description: "Les dette høyt før dere starter. Hold tonen rolig og nysgjerrig.",
       content: [
         "I dag skal vi øve på å tenke under press.",
         "Jeg er ikke ute etter perfekte svar.",
@@ -570,33 +730,33 @@ export function buildSessionPlan(rawInput: SessionInput): SessionPlan {
         "Hvis du kjenner deg usikker, er det en del av øvelsen.",
         "Du må fortsatt velge noe og forklare hvorfor.",
       ],
-      helpTitle: "Hjelp til forelder",
+      helpTitle: "Støtte til forelder",
       helpLines: [
-        "Les rolig og sakte. Ikke forklar ekstra etterpå.",
-        "Hvis barna begynner å diskutere før du er ferdig, si: 'Hold på tanken. Først hører vi hele oppgaven.'",
-        "Målet i dette steget er å sette rammen: tydelig, rolig, ingen forelesning.",
+        "Les rolig og sakte. Ikke legg til en miniforelesning etterpå.",
+        "Hvis barna vil diskutere før du er ferdig, si: 'Hold på tanken. Først hører vi hele oppgaven.'",
+        "Målet i dette steget er å sette rammen: tydelig, rolig, ingen moralpreken.",
       ],
-      notePlaceholder: notePlaceholder("Foreldreskript"),
+      notePlaceholder: notePlaceholder("Foreldreguide"),
     },
     {
       id: "shared-scenario",
       kind: "scenario",
-      title: "Kort scenario",
+      title: "Felles scenario",
       audience: "Felles",
-      description: "Les scenarioet høyt. Hvis det ikke passer, lag et nytt med knappen øverst til høyre.",
+      description: "Les scenarioet høyt. Hvis det ikke treffer, lag en ny variant med knappen øverst til høyre.",
       scenarioVariants: theme.warmupStories,
-      helpTitle: "Hjelp til forelder",
+      helpTitle: "Støtte til forelder",
       helpLines: [
         "Les hele scenarioet før du tar imot svar.",
         "Ikke myk opp situasjonen. Litt ubehag er meningen.",
-        "Hvis barna vil hoppe rett til moral, si: 'Vent. Først vil jeg høre hva du faktisk ville gjort.'",
+        "Hvis barna hopper rett til moral, si: 'Vent. Først vil jeg høre hva du faktisk ville gjort.'",
       ],
-      notePlaceholder: notePlaceholder("Kort scenario"),
+      notePlaceholder: notePlaceholder("Felles scenario"),
     },
     {
       id: "shared-questions",
       kind: "questions",
-      title: "Spørsmål etter scenario",
+      title: "Spørsmål til alle",
       audience: "Felles",
       sections: [
         ...children.map((child, index) => ({
@@ -612,13 +772,13 @@ export function buildSessionPlan(rawInput: SessionInput): SessionPlan {
           ],
         },
       ],
-      helpTitle: "Hjelp til forelder",
+      helpTitle: "Støtte til forelder",
       helpLines: [
         "Be alltid om konkrete ord, ikke bare generelle forklaringer.",
         "Hvis svaret blir uklart, si: 'Si det som om det skjer nå.'",
         "Hvis barnet svarer veldig fort, press med: 'Hva overser du i det svaret?'",
       ],
-      notePlaceholder: notePlaceholder("Spørsmål etter scenario"),
+      notePlaceholder: notePlaceholder("Spørsmål til alle"),
     },
   ];
 
@@ -632,7 +792,16 @@ export function buildSessionPlan(rawInput: SessionInput): SessionPlan {
       audience: child.name,
       description: "Les dette høyt til barnet. Bytt scenario hvis du vil ha en annen variant.",
       scenarioVariants: childStories,
-      helpTitle: "Hjelp til forelder",
+      sections:
+        childContextLines(child).length > 0
+          ? [
+              {
+                title: "Kontekst å ha i bakhodet",
+                lines: childContextLines(child),
+              },
+            ]
+          : undefined,
+      helpTitle: "Støtte til forelder",
       helpLines: [
         "Hold igjen løsningen. Barnet skal kjenne på valget før du hjelper.",
         "Hvis barnet prøver å slippe unna med et pent standardsvar, si: 'Hva ville du faktisk gjort om dette skjedde i dag?'",
@@ -647,10 +816,18 @@ export function buildSessionPlan(rawInput: SessionInput): SessionPlan {
       title: `Spørsmål til ${child.name}`,
       audience: child.name,
       sections: [
+        ...(childContextLines(child).length > 0
+          ? [
+              {
+                title: "Kontekst å ta med inn i spørsmålene",
+                lines: childContextLines(child),
+              },
+            ]
+          : []),
         {
           title: "Hovedspørsmål",
           lines:
-            child.age >= 14
+            child.age >= 13
               ? [
                   `Spør: "${child.name}, hva gjør du først?"`,
                   'Spør: "Hva ville du sagt eller skrevet, ord for ord?"',
@@ -659,12 +836,12 @@ export function buildSessionPlan(rawInput: SessionInput): SessionPlan {
                     : 'Spør: "Hvis du ikke gjør noe, hva tror du skjer videre?"',
                   'Spør: "Hva er det tredje alternativet, bortsett fra å bli med eller late som du ikke så det?"',
                 ]
-              : child.age >= 10
+              : child.age >= 9
                 ? [
                     `Spør: "${child.name}, hva sier du først, helt konkret?"`,
                     'Spør: "Sier du noe med en gang, venter du, eller ber du om å snakke alene?"',
                     rawInput.difficulty_level === "advanced"
-                      ? 'Spør: "Hva beskytter du mest her: tingen, stoltheten din, eller hvordan folk vil behandle deg senere?"'
+                      ? 'Spør: "Hva beskytter du mest her: stoltheten din, tryggheten din, eller hvordan folk vil behandle deg senere?"'
                       : 'Spør: "Hvis den andre blir sur eller de andre ler, hva gjør du da?"',
                     'Spør: "Hva er det tredje alternativet, bortsett fra å rope eller gå vekk?"',
                   ]
@@ -694,23 +871,8 @@ export function buildSessionPlan(rawInput: SessionInput): SessionPlan {
           title: "Gjennombruddsspørsmål",
           lines: [`Spør: "${ageBandQuestion(child)}"`],
         },
-        {
-          title: "Valgfritt hint hvis barnet står fast i 20-30 sekunder",
-          lines:
-            child.age >= 14
-              ? [
-                  "Si: 'Du trenger ikke velge en stor heroisk handling. Du kan velge ett tydelig svar, én privat melding, eller ett skritt bort.'",
-                ]
-              : child.age >= 10
-                ? [
-                    "Si: 'Prøv: Jeg mener det. Jeg vil løse dette uten drama, men jeg kommer ikke til å overse det.'",
-                  ]
-                : [
-                    "Si: 'Prøv: Stopp. Jeg vil ha den tilbake. Eller: La oss spørre læreren sammen.'",
-                  ],
-        },
       ],
-      helpTitle: "Hjelp til forelder",
+      helpTitle: "Støtte til forelder",
       helpLines: followUpHelp(child),
       notePlaceholder: notePlaceholder(`Spørsmål til ${child.name}`),
     });
@@ -738,7 +900,7 @@ export function buildSessionPlan(rawInput: SessionInput): SessionPlan {
         lines: ['Si: "Senk farten, velg tydelig, og si det høyt."'],
       },
     ],
-    helpTitle: "Hjelp til forelder",
+    helpTitle: "Støtte til forelder",
     helpLines: reflectionHelp(children),
     notePlaceholder: notePlaceholder("Felles refleksjon"),
   });
@@ -772,14 +934,11 @@ export function buildSessionPlan(rawInput: SessionInput): SessionPlan {
         ],
       },
       {
-        title: "Hva du ikke skal gjøre",
+        title: "Sikkerhetsramme for forelder",
         lines: [
-          "Ikke foreles.",
-          "Ikke redd barnet for tidlig.",
-          "Ikke gjør svaret om til en moralsk tale.",
-          'Ikke godta "jeg vet ikke" som sluttsvar.',
-          "Ikke overros opplagte svar.",
-          "Ikke skynd deg til det peneste svaret før barnet har fått streve litt.",
+          "Denne økten er laget for hverdagslige, vanskelige samtaler hjemme.",
+          "Hvis barnet forteller om vold, overgrep, selvskading eller noe som kjennes akutt, gå ut av øvelsen og søk hjelp med en gang.",
+          "Du trenger ikke fullføre en økt hvis barnet blir overveldet. Senk tempoet, bekreft følelsen, og ta pausen først.",
         ],
       },
       {
@@ -793,7 +952,7 @@ export function buildSessionPlan(rawInput: SessionInput): SessionPlan {
         ],
       },
     ],
-    helpTitle: "Hjelp til forelder",
+    helpTitle: "Støtte til forelder",
     helpLines: [
       "Dette er oppsummeringsvinduet ditt. Bruk det etter økten eller mellom stegene hvis du trenger å nullstille deg.",
       "Hvis du merker at du blir frustrert, gå tilbake hit og minn deg selv på at målet er tenking, ikke lydighet.",
@@ -803,10 +962,12 @@ export function buildSessionPlan(rawInput: SessionInput): SessionPlan {
   });
 
   return {
+    brand: "KlokPrat",
     title: theme.title,
     theme: theme.label,
     durationLabel: `${duration} minutter`,
     participantsLabel: children.map((child) => `${child.name} (${child.age})`).join(", "),
+    ageGuidance: "Best egnet for barn ca. 6-16 år",
     steps,
   };
 }
